@@ -55,10 +55,11 @@ def get_data(
         print(response.url)
 
         response.raise_for_status()
-        filename = date.today()+"data.json"
+        filename = str(date.today())+"data.json"
 
         with open(filename, "w") as f:
             json.dump(response.json(), f, indent=4)
+        return {"message":"successfully call made!"}
 
     except requests.exceptions.RequestException as e:
         return {
