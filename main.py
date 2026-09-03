@@ -4,6 +4,7 @@ import os
 import json
 from datetime import date
 from dotenv import load_dotenv
+from math import ceil
 
 load_dotenv()
 
@@ -15,7 +16,7 @@ API_URL = "https://api.data.gov.in/resource/35985678-0d79-46b4-9ed6-6f13308a1d24
 def get_data(
     format: str = 'json',
     offset: int = 0,
-    limit: int = 10,
+    limit: int = 0,
     state: str | None = None,
     district: str | None = None,
     commodity: str | None = None,
@@ -43,10 +44,10 @@ def get_data(
         response = session.get(
             API_URL,
             params = myparams,
-             headers={
-                    "User-Agent": "curl/8.21.0",
-                    "Accept": "*/*"
-                    },
+            headers={
+                "User-Agent": "curl/8.21.0",
+                "Accept": "*/*"
+                },
             timeout=30
             )
         print(response.status_code)
@@ -55,10 +56,40 @@ def get_data(
         print(response.url)
 
         response.raise_for_status()
-        filename = str(date.today())+"data.json"
+        # filename = str(date.today())+"data.json"
+        # with open(filename, 'w') as f:
+        #     json.dump(response.json(), f, indent=4)
 
-        with open(filename, "w") as f:
-            json.dump(response.json(), f, indent=4)
+
+        # pagination
+        total = response.json()['total']
+        number_of_pages = ceil(total/limit)
+        # records = response.json()['records']
+        for page in range(0, number_of_pages):
+            myparams['offset'] = page * limit
+            response_per_page = session.get(
+                API_URL,
+                params = myparams,
+                headers={
+                    "User-Agent": "curl/8.21.0",
+                    "Accept": "*/*"
+                    },
+                timeout=30
+                )
+            print(response_per_page.status_code)
+            print(response_per_page.headers)
+            print(response_per_page.text)
+            print(response_per_page.url)
+
+            response_per_page.raise_for_status()
+            records = response_per_page.json()['records']
+            for record in records:
+                with open('data1.jsonl', 'a') as f:
+                    json.dump(record, f)
+                    f.write("\n")
+            # myparams['offset'] = page * limit
+        # with open(filename, "w") as f:
+        #     json.dump(response.json(), f, indent=4)
         return {"message":"successfully call made!"}
 
     except requests.exceptions.RequestException as e:
