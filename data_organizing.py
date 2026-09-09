@@ -27,9 +27,3 @@ with open("data1.jsonl", 'r') as f:
         commodity_table(content)
         count_commodity = len(commodity_id)+1
         current_commodity_id =count_commodity
-print("Market table")
-# pprint(markets_seen)
-pprint(market_id)
-print('Commodity table')
-# pprint(commodity_seen)
-pprint(commodity_id)
