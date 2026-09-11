@@ -56,15 +56,14 @@ def get_data(
         print(response.url)
 
         response.raise_for_status()
-        # filename = str(date.today())+"data.json"
-        # with open(filename, 'w') as f:
-        #     json.dump(response.json(), f, indent=4)
+        filename = str(date.today())+"data.json"
+        with open(filename, 'w') as f:
+            json.dump(response.json(), f, indent=4)
 
 
         # pagination
         total = response.json()['total']
         number_of_pages = ceil(total/limit)
-        # records = response.json()['records']
         for page in range(0, number_of_pages):
             myparams['offset'] = page * limit
             response_per_page = session.get(
@@ -87,9 +86,6 @@ def get_data(
                 with open('data1.jsonl', 'a') as f:
                     json.dump(record, f)
                     f.write("\n")
-            # myparams['offset'] = page * limit
-        # with open(filename, "w") as f:
-        #     json.dump(response.json(), f, indent=4)
         return {"message":"successfully call made!"}
 
     except requests.exceptions.RequestException as e:
