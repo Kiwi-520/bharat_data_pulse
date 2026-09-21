@@ -1,38 +1,37 @@
 import json
-from collections import Counter
-# from main import total
+from collections import Counter, defaultdict
 
-TARGET_DATE = "01/02/2026"   # change this to whichever day you're checking
-EXPECTED_TOTAL = 31          # the "total" the API reported for that day
+EXPECTED_TOTALS = {
+    "01/02/2026": None,  # fill in per-date totals if you have them, or leave None to skip that check
+    "02/02/2026": None,
+    "03/02/2026": None,
+    # ... add the rest of your dates here
+}
 
-records_for_date = []
+records_by_date = defaultdict(list)
 
 with open("data1.jsonl", "r") as f:
     for line in f:
         record = json.loads(line)
-        if record["Arrival_Date"] == TARGET_DATE:
-            records_for_date.append(record)
+        records_by_date[record["Arrival_Date"]].append(record)
 
-print(f"Records found for {TARGET_DATE}: {len(records_for_date)}")
-print(f"Expected total: {EXPECTED_TOTAL}")
+for target_date, records in sorted(records_by_date.items()):
+    print(f"\n--- {target_date} ---")
+    print(f"Records found: {len(records)}")
 
-if len(records_for_date) == EXPECTED_TOTAL:
-    print("✅ Count matches — nothing missing.")
-elif len(records_for_date) < EXPECTED_TOTAL:
-    print("⚠️ Fewer records than expected — pagination may have stopped early.")
-else:
-    print("⚠️ More records than expected — check for duplicates below.")
+    expected = EXPECTED_TOTALS.get(target_date)
+    if expected is not None:
+        status = "✅ matches" if len(records) == expected else "⚠️ MISMATCH"
+        print(f"Expected: {expected} — {status}")
 
-# Duplicate check — same Market + Variety + Grade appearing more than once
-signatures = [
-    (r["Market"], r["Variety"], r["Grade"]) for r in records_for_date
-]
-counts = Counter(signatures)
-duplicates = {sig: c for sig, c in counts.items() if c > 1}
+    # duplicate check, now scoped to just this one date
+    signatures = [(r["Market"], r["Variety"], r["Grade"]) for r in records]
+    counts = Counter(signatures)
+    duplicates = {sig: c for sig, c in counts.items() if c > 1}
 
-if duplicates:
-    print(f"\n⚠️ Found {len(duplicates)} duplicate signature(s):")
-    for sig, c in duplicates.items():
-        print(f"  {sig} appears {c} times")
-else:
-    print("\n✅ No duplicates found for this date.")
+    if duplicates:
+        print(f"⚠️ {len(duplicates)} duplicate(s) WITHIN this date:")
+        for sig, c in duplicates.items():
+            print(f"  {sig} appears {c} times")
+    else:
+        print("✅ No duplicates within this date.")
