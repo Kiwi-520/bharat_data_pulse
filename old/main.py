@@ -60,7 +60,6 @@ def get_data(
         with open(filename, 'w') as f:
             json.dump(response.json(), f, indent=4)
 
-
         # pagination
         total = response.json()['total']
         number_of_pages = ceil(total/limit)
