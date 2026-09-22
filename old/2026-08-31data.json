@@ -1,0 +1,267 @@
+{
+    "index_name": "35985678-0d79-46b4-9ed6-6f13308a1d24",
+    "title": "Variety-wise Daily Market Prices Data of Commodity",
+    "desc": "Variety-wise Daily Market Prices Data of Commodity",
+    "org_type": "Central",
+    "org": [
+        "Ministry of Agriculture and Farmers Welfare",
+        "Department of Agriculture and Farmers Welfare",
+        "Directorate of Marketing and Inspection (DMI)"
+    ],
+    "sector": [
+        "Agriculture",
+        "Agricultural Marketing"
+    ],
+    "source": "data.gov.in",
+    "catalog_uuid": "6141ea17-a69d-4713-b600-0a43c8fd9a6c",
+    "visualizable": "0",
+    "active": "1",
+    "created": 1695098583,
+    "updated": 1788133042,
+    "created_date": "2023-09-19T06:43:03Z",
+    "updated_date": "2026-08-30T23:37:22Z",
+    "external_ws": 0,
+    "external_ws_url": "",
+    "target_bucket": {
+        "index": "agmarknet_new",
+        "type": "6141ea17-a69d-4713-b600-0a43c8fd9a6c",
+        "field": "35985678-0d79-46b4-9ed6-6f13308a1d24"
+    },
+    "field": [
+        {
+            "name": "Arrival_Date",
+            "id": "Arrival_Date",
+            "type": "date"
+        },
+        {
+            "name": "Commodity",
+            "id": "Commodity",
+            "type": "keyword"
+        },
+        {
+            "name": "Commodity_Code",
+            "id": "Commodity_Code",
+            "type": "keyword"
+        },
+        {
+            "name": "District",
+            "id": "District",
+            "type": "keyword"
+        },
+        {
+            "name": "Grade",
+            "id": "Grade",
+            "type": "keyword"
+        },
+        {
+            "name": "Market",
+            "id": "Market",
+            "type": "keyword"
+        },
+        {
+            "name": "Max_Price",
+            "id": "Max_Price",
+            "type": "keyword"
+        },
+        {
+            "name": "Min_Price",
+            "id": "Min_Price",
+            "type": "keyword"
+        },
+        {
+            "name": "Modal_Price",
+            "id": "Modal_Price",
+            "type": "keyword"
+        },
+        {
+            "name": "State",
+            "id": "State",
+            "type": "keyword"
+        },
+        {
+            "name": "Variety",
+            "id": "Variety",
+            "type": "keyword"
+        }
+    ],
+    "field_dependent": {
+        "State": {
+            "parent": "State",
+            "child": "District"
+        }
+    },
+    "order": [
+        {
+            "name": "Market",
+            "id": "Market"
+        },
+        {
+            "name": "Commodity",
+            "id": "Commodity"
+        }
+    ],
+    "field_exposed": [
+        {
+            "name": "State",
+            "id": "State",
+            "type": "keyword",
+            "mandatory": true
+        },
+        {
+            "name": "District",
+            "id": "District",
+            "type": "keyword",
+            "mandatory": true
+        },
+        {
+            "name": "Commodity",
+            "id": "Commodity",
+            "type": "keyword"
+        },
+        {
+            "name": "Arrival Date",
+            "format": "dd-MM-yyyy",
+            "id": "Arrival_Date",
+            "type": "date"
+        }
+    ],
+    "message": "Resource lists",
+    "version": "2.2.0",
+    "status": "ok",
+    "total": 81491968,
+    "count": 10,
+    "limit": "10",
+    "offset": "0",
+    "records": [
+        {
+            "Arrival_Date": "11/11/2009",
+            "Commodity": "Potato",
+            "Commodity_Code": "24",
+            "District": "Hooghly",
+            "Grade": "FAQ",
+            "Market": "Sheoraphuly",
+            "Max_Price": "1600",
+            "Min_Price": "1580",
+            "Modal_Price": "1580",
+            "State": "West Bengal",
+            "Variety": "Jyoti"
+        },
+        {
+            "Arrival_Date": "15/11/2009",
+            "Commodity": "Potato",
+            "Commodity_Code": "24",
+            "District": "Hooghly",
+            "Grade": "FAQ",
+            "Market": "Sheoraphuly",
+            "Max_Price": "1620",
+            "Min_Price": "1610",
+            "Modal_Price": "1610",
+            "State": "West Bengal",
+            "Variety": "Jyoti"
+        },
+        {
+            "Arrival_Date": "02/12/2009",
+            "Commodity": "Potato",
+            "Commodity_Code": "24",
+            "District": "Hooghly",
+            "Grade": "FAQ",
+            "Market": "Sheoraphuly",
+            "Max_Price": "1660",
+            "Min_Price": "1650",
+            "Modal_Price": "1650",
+            "State": "West Bengal",
+            "Variety": "Jyoti"
+        },
+        {
+            "Arrival_Date": "03/12/2009",
+            "Commodity": "Potato",
+            "Commodity_Code": "24",
+            "District": "Hooghly",
+            "Grade": "FAQ",
+            "Market": "Sheoraphuly",
+            "Max_Price": "1600",
+            "Min_Price": "1580",
+            "Modal_Price": "1580",
+            "State": "West Bengal",
+            "Variety": "Jyoti"
+        },
+        {
+            "Arrival_Date": "04/12/2009",
+            "Commodity": "Potato",
+            "Commodity_Code": "24",
+            "District": "Hooghly",
+            "Grade": "FAQ",
+            "Market": "Sheoraphuly",
+            "Max_Price": "1600",
+            "Min_Price": "1580",
+            "Modal_Price": "1580",
+            "State": "West Bengal",
+            "Variety": "Jyoti"
+        },
+        {
+            "Arrival_Date": "05/12/2009",
+            "Commodity": "Potato",
+            "Commodity_Code": "24",
+            "District": "Hooghly",
+            "Grade": "FAQ",
+            "Market": "Sheoraphuly",
+            "Max_Price": "1630",
+            "Min_Price": "1620",
+            "Modal_Price": "1620",
+            "State": "West Bengal",
+            "Variety": "Jyoti"
+        },
+        {
+            "Arrival_Date": "09/12/2009",
+            "Commodity": "Potato",
+            "Commodity_Code": "24",
+            "District": "Hooghly",
+            "Grade": "FAQ",
+            "Market": "Sheoraphuly",
+            "Max_Price": "1630",
+            "Min_Price": "1620",
+            "Modal_Price": "1620",
+            "State": "West Bengal",
+            "Variety": "Jyoti"
+        },
+        {
+            "Arrival_Date": "19/12/2009",
+            "Commodity": "Potato",
+            "Commodity_Code": "24",
+            "District": "Hooghly",
+            "Grade": "FAQ",
+            "Market": "Sheoraphuly",
+            "Max_Price": "1420",
+            "Min_Price": "1400",
+            "Modal_Price": "1400",
+            "State": "West Bengal",
+            "Variety": "Jyoti"
+        },
+        {
+            "Arrival_Date": "25/12/2009",
+            "Commodity": "Potato",
+            "Commodity_Code": "24",
+            "District": "Hooghly",
+            "Grade": "FAQ",
+            "Market": "Sheoraphuly",
+            "Max_Price": "760",
+            "Min_Price": "750",
+            "Modal_Price": "750",
+            "State": "West Bengal",
+            "Variety": "Jyoti"
+        },
+        {
+            "Arrival_Date": "17/01/2009",
+            "Commodity": "Potato",
+            "Commodity_Code": "24",
+            "District": "Hooghly",
+            "Grade": "FAQ",
+            "Market": "Sheoraphuly",
+            "Max_Price": "430",
+            "Min_Price": "420",
+            "Modal_Price": "420",
+            "State": "West Bengal",
+            "Variety": "Other"
+        }
+    ]
+}

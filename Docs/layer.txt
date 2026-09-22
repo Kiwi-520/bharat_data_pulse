@@ -1,0 +1,295 @@
+========================================================================
+BHARAT DATA PULSE — COMPLETE LAYER MAP
+On-Demand, Multi-Commodity, Cache-Aware Architecture
+========================================================================
+
+BUILD DISCIPLINE FOR EVERY LAYER BELOW:
+Phase A — Prove it works for ONE commodity (Onion), end-to-end, fully
+          working and verified.
+Phase B — Only after Phase A is solid, generalize the same logic to
+          handle ANY commodity the user requests, without rewriting
+          the core logic — just removing the hardcoded assumption.
+
+Do not start Phase B on any layer until Phase A of that layer is
+verified. Do not move to the next layer until the current layer's
+Phase A is done.
+
+========================================================================
+LAYER 1 — INGESTION (now request-driven, not just batch)
+========================================================================
+
+WHAT IT DOES:
+Fetches raw commodity price data from the data.gov.in Mandi Price API.
+Previously this only ran as a manual batch script for a fixed
+commodity/date range. Now it must also be callable on-demand: given a
+commodity and market/state, fetch fresh data for it right when needed.
+
+INPUT:
+- Commodity name (e.g. "Onion", later any commodity)
+- State (Maharashtra, fixed for now)
+- Optional: specific market, date, or date range
+- API key (from .env)
+
+OUTPUT:
+- Raw JSON records from the API, exactly as returned
+- Saved to a raw storage location (local file or eventually S3),
+  timestamped, before any cleaning happens
+
+IMPACT ON OVERALL PROJECT:
+This is the entry point for everything else. If this layer can only
+handle one hardcoded commodity, nothing above it can generalize either.
+Phase A: prove this works correctly for Onion only, including
+pagination, exactly as already built and verified.
+Phase B: parameterize commodity so any valid commodity name can be
+passed in and fetched correctly, with the same pagination and error
+handling already proven.
+
+========================================================================
+LAYER 2 — CACHE-CHECK / FETCH-OR-SERVE LOGIC (new, core to on-demand)
+========================================================================
+
+WHAT IT DOES:
+Before hitting the live API, checks whether the requested
+commodity + market + date range already exists in the database. If
+yes, serve directly from the database (fast). If no, trigger Layer 1
+to fetch it live, clean and store it, then serve it.
+
+INPUT:
+- A user's request: commodity, market (optional), date range (optional)
+
+OUTPUT:
+- A decision: "serve from cache" or "fetch live, then serve"
+- If fetching live: triggers Layer 1, then Layer 3 (cleaning), then
+  Layer 4 (storage), before finally returning data
+
+IMPACT ON OVERALL PROJECT:
+This is what makes "on-demand" actually usable instead of slow and
+fragile. Without this layer, every single request would hit the live
+government API, which is slow and unreliable for a real user-facing
+product. This layer is the difference between "a script that fetches
+data" and "a system that intelligently serves data."
+Phase A: build and prove this works for Onion only — confirm a first
+request triggers a live fetch, and a second identical request is
+served instantly from the database instead.
+Phase B: generalize the check to work for any commodity, keyed the
+same way your dim_commodity lookup already works.
+
+========================================================================
+LAYER 3 — CLEANING / TRANSFORMATION
+========================================================================
+
+WHAT IT DOES:
+Takes raw JSON records and turns them into clean, correctly-typed
+data ready for storage — the same logic you already built and proved
+for Onion (type casting for prices, date parsing, market/commodity
+lookups).
+
+INPUT:
+- Raw JSON records from Layer 1
+
+OUTPUT:
+- Cleaned Python records: correct numeric types for prices, correct
+  date objects, verified against known data quality issues (string vs
+  number prices, day-first dates)
+
+IMPACT ON OVERALL PROJECT:
+This is what prevents bad data from ever reaching your database or
+your analytics layer. Already built and verified for Onion.
+Phase A: already done (your numeric_conversion and date_conversion
+functions).
+Phase B: confirm these same functions work correctly on a second and
+third real commodity's data without modification — this proves the
+cleaning logic was never actually Onion-specific to begin with.
+
+========================================================================
+LAYER 4 — SCHEMA + STORAGE (MySQL)
+========================================================================
+
+WHAT IT DOES:
+Stores cleaned data into your normalized schema: dim_location,
+dim_commodity, fact_daily_price. Already designed to be
+commodity-agnostic (foreign key relationship, not hardcoded values).
+
+INPUT:
+- Cleaned records from Layer 3
+
+OUTPUT:
+- Rows inserted into the three tables, with correct foreign key
+  relationships (find-or-create logic for location and commodity)
+
+IMPACT ON OVERALL PROJECT:
+This is your cache's actual storage backend — Layer 2 depends
+entirely on this being correctly queryable by commodity and market.
+Phase A: already done and verified for Onion (81 markets, 1
+commodity, 475 fact rows, verified row-for-row).
+Phase B: confirm a second commodity gets its own new dim_commodity
+row correctly via the existing find-or-create dictionary logic,
+without any code changes needed — this is the real proof the design
+was sound from the start.
+
+========================================================================
+LAYER 5 — ORCHESTRATION (Airflow)
+========================================================================
+
+WHAT IT DOES:
+Runs scheduled background refreshes for commodities that are already
+cached/popular, so their data stays reasonably current without
+requiring a live fetch on every single user request.
+
+INPUT:
+- A list of currently-cached commodities (queryable from
+  dim_commodity)
+- A schedule (e.g. daily)
+
+OUTPUT:
+- Updated, fresher rows in fact_daily_price for already-tracked
+  commodities
+- Logs/alerts if a scheduled refresh fails
+
+IMPACT ON OVERALL PROJECT:
+This is what turns your cache from "stale after first fetch forever"
+into "a living, self-updating system" — a genuinely stronger
+orchestration story than a fixed daily batch job, because it responds
+to real usage patterns (what's actually been requested) rather than a
+hardcoded list.
+Phase A: build and prove one working scheduled DAG that refreshes
+Onion's data correctly, with basic failure handling.
+Phase B: generalize the DAG to loop over whatever commodities
+currently exist in dim_commodity, refreshing all of them — not just
+Onion.
+
+========================================================================
+LAYER 6 — ANALYTICS
+========================================================================
+
+WHAT IT DOES:
+Runs real analytical queries against fact_daily_price to answer
+useful questions: price volatility for a market, cross-market price
+comparison for a commodity, and trend direction over a date range.
+
+INPUT:
+- Commodity name, and optionally market name / date range
+- Queries the now-populated fact_daily_price table (via Layer 2's
+  cache-check first)
+
+OUTPUT:
+- Structured results: e.g. a volatility score, a ranked list of
+  markets by price, a trend direction (rising/falling/stable)
+
+IMPACT ON OVERALL PROJECT:
+This is what makes the project solve a real problem instead of just
+moving data around — this is your actual "market value" story: real
+decision-support for someone deciding where or when to buy/sell.
+Phase A: build and verify these three queries against Onion's data,
+manually cross-checking one result against raw numbers you can see
+yourself.
+Phase B: confirm the same queries work correctly, unmodified, when
+pointed at a second commodity's data.
+
+========================================================================
+LAYER 7 — DELIVERY (FastAPI)
+========================================================================
+
+WHAT IT DOES:
+Exposes the whole system through real HTTP endpoints a user (or a
+recruiter demoing it) can actually call — this is the user-facing
+surface of everything built so far.
+
+INPUT:
+- HTTP requests, e.g. GET /analytics/{commodity}/{market}
+
+OUTPUT:
+- JSON responses containing analytics results (from Layer 6), having
+  transparently triggered Layer 2's cache-check/fetch-or-serve flow
+  behind the scenes
+
+IMPACT ON OVERALL PROJECT:
+This is what makes the project demoable in 30 seconds — someone can
+hit an endpoint with a commodity they choose and get a real answer,
+which is a far stronger portfolio moment than explaining an
+architecture diagram.
+Phase A: one working endpoint, tested against Onion, including the
+case where data must be fetched live for the first time.
+Phase B: confirm the same endpoint works correctly for a commodity
+that has never been requested before, proving the full on-demand
+chain (Layers 1-6) works together for something new.
+
+========================================================================
+LAYER 8 — CONTAINERIZATION (Docker)
+========================================================================
+
+WHAT IT DOES:
+Packages the FastAPI app (and its dependencies) into a container that
+runs identically anywhere, regardless of what's installed on the host
+machine.
+
+INPUT:
+- Your working FastAPI application and its dependencies
+
+OUTPUT:
+- A Docker image that can be run consistently in any environment
+
+IMPACT ON OVERALL PROJECT:
+This is a genuine "production-shaped" signal — it proves you can
+package a real system for deployment, not just run it locally.
+Phase A only — this layer doesn't really have a "per-commodity"
+Phase B distinction; once it works, it works for the whole system.
+
+========================================================================
+LAYER 9 — DEPLOYMENT
+========================================================================
+
+WHAT IT DOES:
+Hosts the Dockerized application somewhere live and publicly
+reachable (e.g. Render, Railway, or similar), with a real database
+connection, so it's a working link, not just local code.
+
+INPUT:
+- The Docker image from Layer 8
+- A hosted database connection (your MySQL data needs to live
+  somewhere reachable by the deployed app, not just your laptop)
+
+OUTPUT:
+- A live URL someone can visit or call directly
+
+IMPACT ON OVERALL PROJECT:
+This is what makes the project genuinely "shippable" and promotable —
+a link you can put in a resume, a LinkedIn post, or a job application,
+that a recruiter can actually click and try themselves.
+Phase A only — deployment applies to the whole system at once, not
+per-commodity.
+
+========================================================================
+LAYER 10 — LLM / RAG QUERY LAYER (learned daily, built after Layer 9)
+========================================================================
+
+WHAT IT DOES:
+Lets a user ask a plain-English question and get a grounded answer,
+generated by retrieving relevant real data from your database and
+using it to inform an LLM's response — instead of requiring the user
+to know your API's parameters at all.
+
+INPUT:
+- A natural-language question (e.g. "which market has cheapest onions
+  right now")
+
+OUTPUT:
+- A generated, grounded natural-language answer, backed by real
+  retrieved data from Layers 4/6
+
+IMPACT ON OVERALL PROJECT:
+This is your true differentiator layer — the piece that separates
+"a solid Data Engineering project" from "a Data Engineering project
+with a real AI-native interface." It deliberately comes last, and is
+learned in small daily pieces (embeddings, then vector stores, then
+retrieval logic) while the on-demand system above is being built, so
+that by the time you sit down to build it, you understand the pieces
+deeply rather than learning and building under pressure at once.
+Phase A: build and prove basic retrieval + answering against Onion
+data only.
+Phase B: confirm it generalizes across whatever commodities exist in
+the system by that point.
+
+========================================================================
+END OF LAYER MAP
+========================================================================

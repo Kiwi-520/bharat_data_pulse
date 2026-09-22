@@ -1,9 +1,8 @@
-# Bharat Data Pulse 📊
+# Bharat Data Pulse 🧅📊
 
 **A data pipeline turning India's open government commodity price data into a clean, queryable dataset.**
 
 ---
-
 ## The Problem
 
 India's government publishes genuinely valuable open data through [data.gov.in](https://data.gov.in) — including daily agricultural commodity prices across thousands of markets nationwide. In practice, this data is hard to actually use: it's accessed through an API with real inconsistencies (field types that vary across years, day-first date formats, incomplete documentation), and requires technical skill to pull and structure meaningfully.
@@ -44,6 +43,20 @@ This project builds a real, working pipeline that pulls this data, verifies its 
 - **Portal:** [data.gov.in](https://data.gov.in)
 - **Dataset:** Variety-wise Daily Market Prices Data of Commodity (Agmarknet)
 - **Current scope:** Maharashtra state, onion prices
+
+---
+
+## Project Structure
+
+```
+bharat_data_pulse/
+├── main.py              # API ingestion logic (data.gov.in)
+├── data_organizing.py   # Dimension data deduplication (market, commodity lookups)
+├── load_to_mysql.py     # Dimension table loader (dim_location, dim_commodity)
+├── load_fact.py         # Fact table loader (with type/date casting)
+├── .env.example
+└── README.md
+```
 
 ---
 
