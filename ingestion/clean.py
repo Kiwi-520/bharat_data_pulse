@@ -1,5 +1,3 @@
-import mysql.connector
-from mysql.connector import errorcode
 import re
 from decimal import *
 from datetime import datetime
