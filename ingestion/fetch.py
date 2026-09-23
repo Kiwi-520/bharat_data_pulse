@@ -8,11 +8,8 @@ from math import ceil
 
 load_dotenv()
 
-app = FastAPI()
-
 API_KEY = os.getenv("API_KEY")
 API_URL = "https://api.data.gov.in/resource/35985678-0d79-46b4-9ed6-6f13308a1d24"
-@app.get("/")
 def get_data(
     format: str = 'json',
     offset: int = 0,
@@ -22,6 +19,7 @@ def get_data(
     commodity: str | None = None,
     arrival_date: str | None = None,
 ):
+    data_list = []
     myparams = {
         "api-key":API_KEY,
         "format":format,
@@ -84,8 +82,9 @@ def get_data(
             for record in records:
                 with open('data1.jsonl', 'a') as f:
                     json.dump(record, f)
+                    data_list.append(record)
                     f.write("\n")
-        return {"message":"successfully call made!"}
+        return data_list
 
     except requests.exceptions.RequestException as e:
         return {
