@@ -1,10 +1,10 @@
-from fastapi import FastAPI
 import requests
 import os
 import json
 from datetime import date
 from dotenv import load_dotenv
 from math import ceil
+from pprint import pprint
 
 load_dotenv()
 
@@ -13,7 +13,7 @@ API_URL = "https://api.data.gov.in/resource/35985678-0d79-46b4-9ed6-6f13308a1d24
 def get_data(
     format: str = 'json',
     offset: int = 0,
-    limit: int = 0,
+    limit: int = 10,
     state: str | None = None,
     district: str | None = None,
     commodity: str | None = None,
@@ -48,10 +48,10 @@ def get_data(
                 },
             timeout=30
             )
-        print(response.status_code)
-        print(response.headers)
-        print(response.text)
-        print(response.url)
+        # print(response.status_code)
+        # print(response.headers)
+        # print(response.text)
+        # print(response.url)
 
         response.raise_for_status()
         filename = str(date.today())+"data.json"
@@ -82,12 +82,13 @@ def get_data(
             for record in records:
                 with open('data1.jsonl', 'a') as f:
                     json.dump(record, f)
-                    data_list.append(record)
                     f.write("\n")
+                    data_list.append(record)
+
         return data_list
 
     except requests.exceptions.RequestException as e:
-        return {
-            "message": "No data found",
-            "error": str(e)
-        }
+        raise Exception("Failed Fetch")
+
+results = get_data(commodity="Tomato", state="Maharashtra", arrival_date="2026-04-04")
+pprint(results)
