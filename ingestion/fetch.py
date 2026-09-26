@@ -46,7 +46,7 @@ def get_data(
                 "User-Agent": "curl/8.21.0",
                 "Accept": "*/*"
                 },
-            timeout=30
+            timeout=120
             )
         # print(response.status_code)
         # print(response.headers)
@@ -72,23 +72,20 @@ def get_data(
                     },
                 timeout=30
                 )
-            print(response_per_page.status_code)
-            print(response_per_page.headers)
-            print(response_per_page.text)
-            print(response_per_page.url)
+            # print(response_per_page.status_code)
+            # print(response_per_page.headers)
+            # print(response_per_page.text)
+            # print(response_per_page.url)
 
             response_per_page.raise_for_status()
             records = response_per_page.json()['records']
             for record in records:
-                with open('data1.jsonl', 'a') as f:
-                    json.dump(record, f)
-                    f.write("\n")
-                    data_list.append(record)
+                data_list.append(record)
 
         return data_list
 
     except requests.exceptions.RequestException as e:
-        raise Exception("Failed Fetch")
+        raise Exception(f"Failed Fetch: {e}")
 
 results = get_data(commodity="Tomato", state="Maharashtra", arrival_date="2026-04-04")
 pprint(results)
