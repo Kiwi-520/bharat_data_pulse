@@ -1,80 +1,67 @@
-import json
-from pprint import pprint
+from app.db import get_connection
 
-markets_seen = []
-market_id = {}
-current_market_id = 1
-commodity_seen = []
-commodity_id = {}
-current_commodity_id = 1
-def market_table(entry):
-    if entry['Market'] not in markets_seen:
-        market_id[entry['Market']] = {"id": current_market_id, "state": entry["State"], "district":entry['District']}
-        markets_seen.append(entry['Market'])
+def build_dimension_maps(records):
+    """Takes fetched records, returns market_id and commodity_id dicts (in-memory only, no DB yet)."""
+    market_id = {}
+    commodity_id = {}
+    for entry in records:
+        if entry['Market'] not in market_id:
+            market_id[entry['Market']] = {
+                "state": entry["State"],
+                "district": entry["District"]
+            }
+        if entry["Commodity"] not in commodity_id:
+            commodity_id[entry["Commodity"]] = {
+                "code": entry["Commodity_Code"]
+            }
+    return market_id, commodity_id
 
-def commodity_table(entry):
-    if entry["Commodity"] not in commodity_seen:
-        commodity_id[entry['Commodity']] = {"id": current_commodity_id, "code": entry['Commodity_Code']}
-        commodity_seen.append(entry['Commodity'])
-
-
-with open("data1.jsonl", 'r') as f:
-    for line in f:
-        content = json.loads(line)
-        market_table(content)
-        count_market = len(market_id)+1
-        current_market_id =count_market
-        commodity_table(content)
-        count_commodity = len(commodity_id)+1
-        current_commodity_id =count_commodity
-
-import mysql.connector
-from mysql.connector import errorcode
-import json
-import os
-from dotenv import load_dotenv
-from data_organizing import market_id, commodity_id
-load_dotenv()
-
-try:
-    cnx = mysql.connector.connect(
-        user = os.getenv("MYSQL_USERNAME"),
-        password = os.getenv("MYSQL_PASSWORD"),
-        host = os.getenv("DB_HOST"),
-        database = os.getenv("DB_NAME")
+def get_or_create_location(cursor, market, district, state):
+    cursor.execute(
+        "SELECT location_id FROM dim_location WHERE market = %s AND district = %s AND state = %s",
+        (market, district, state)
     )
-    print("Connected sucessfully...")
-except mysql.connector.Error as err:
-    if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-        print("Wrong password")
-    elif err.errno == errorcode.ER_BAD_DB_ERROR:
-        print("wrong host or db name")
-    else:
-        print(err)
-cursor = cnx.cursor()
-
-add_dim_location = ("INSERT INTO dim_location"
-                    "(district, state, market)"
-                    "VALUES (%s, %s, %s)"
-                    )
-
-add_dim_commodity = ("INSERT INTO dim_commodity"
-                     "(commodity_code, commodity)"
-                     "VALUES (%s, %s)"
-                    )
-
-for market in market_id:
-    data_dim_location = (market_id[market]['district'],
-                        market_id[market]['state'],
-                        market)
-    cursor.execute(add_dim_location, data_dim_location)
-
-for commodity in commodity_id:
-    data_commodity = (
-        commodity_id[commodity]['code'],
-        commodity
+    row = cursor.fetchone()
+    if row:
+        return row[0]
+    cursor.execute(
+        "INSERT INTO dim_location (district, state, market) VALUES (%s, %s, %s)",
+        (district, state, market)
     )
-    cursor.execute(add_dim_commodity, data_commodity)
+    return cursor.lastrowid
 
-cnx.commit()
-cnx.close()
+def get_or_create_commodity(cursor, commodity, code):
+    cursor.execute(
+        "SELECT commodity_id FROM dim_commodity WHERE commodity = %s",
+        (commodity,)
+    )
+    row = cursor.fetchone()
+    if row:
+        return row[0]
+    cursor.execute(
+        "INSERT INTO dim_commodity (commodity_code, commodity) VALUES (%s, %s)",
+        (code, commodity)
+    )
+    return cursor.lastrowid
+
+def load_dimensions(records):
+    """Main entry point: given raw records, ensures all markets/commodities exist in DB,
+    returns market_id and commodity_id dicts with real DB ids attached."""
+    market_map, commodity_map = build_dimension_maps(records)
+
+    cnx = get_connection()
+    if cnx is None:
+        raise Exception("Could not connect to database")
+    cursor = cnx.cursor()
+
+    for market, info in market_map.items():
+        info["id"] = get_or_create_location(cursor, market, info["district"], info["state"])
+
+    for commodity, info in commodity_map.items():
+        info["id"] = get_or_create_commodity(cursor, commodity, info["code"])
+
+    cnx.commit()
+    cursor.close()
+    cnx.close()
+
+    return market_map, commodity_map
