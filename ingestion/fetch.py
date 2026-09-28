@@ -87,5 +87,5 @@ def get_data(
     except requests.exceptions.RequestException as e:
         raise Exception(f"Failed Fetch: {e}")
 
-results = get_data(commodity="Tomato", state="Maharashtra", arrival_date="2026-04-04")
-pprint(results)
+# results = get_data(commodity="Tomato", state="Maharashtra", arrival_date="2026-04-04")
+# pprint(results)
