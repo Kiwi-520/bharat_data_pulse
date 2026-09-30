@@ -12,5 +12,5 @@ def numeric_conversion(num):
 
 def date_conversion(arrival_date):
     temp = arrival_date
-    converted_date = datetime.strptime(temp, "%d/%m/%Y").date()
+    converted_date = datetime.strptime(temp, "%Y-%m-%d").date()
     return converted_date
