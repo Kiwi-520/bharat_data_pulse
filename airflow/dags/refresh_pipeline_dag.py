@@ -8,7 +8,7 @@ from ingestion.file_fetch import load_data_from_file
 from loaders.load_dimensions import load_dimensions
 from loaders.load_facts import load_facts
 
-DATA_FILE = "/home/disha/Projects/bharat_data_pulse/bharat_data_pulse/data1.jsonl"
+DATA_FILE = "/home/disha/Projects/bharat_data_pulse/bharat_data_pulse/converted.jsonl"
 @dag(
     dag_id="refresh_dag",
     start_date=datetime(2026,9,1),
