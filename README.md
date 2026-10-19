@@ -1,98 +1,104 @@
-# Bharat Data Pulse 🧅📊
+# 🌾 Bharat Data Pulse
 
-**A data pipeline turning India's open government commodity price data into a clean, queryable dataset.**
+A real, end-to-end data engineering pipeline that turns India's open government agricultural market (mandi) price data into clean, queryable insight — ingestion, cleaning, a normalized schema, scheduled orchestration, real analytics, and an interactive dashboard.
 
----
-## The Problem
-
-India's government publishes genuinely valuable open data through [data.gov.in](https://data.gov.in) — including daily agricultural commodity prices across thousands of markets nationwide. In practice, this data is hard to actually use: it's accessed through an API with real inconsistencies (field types that vary across years, day-first date formats, incomplete documentation), and requires technical skill to pull and structure meaningfully.
-
-This project builds a real, working pipeline that pulls this data, verifies its own correctness, and turns it into a properly structured, queryable dataset — using live government data, not a pre-cleaned sample.
+Built from scratch, including every bug fixed along the way: a pagination offset error, a non-unique natural key discovered in real government data, a 5-hour Airflow timeout traced to row-by-row inserts at scale, and more — documented honestly, not hidden.
 
 ---
 
-## What's Built So Far
+## What it does
 
-**Ingestion**
-- Pulls live daily commodity price data from the data.gov.in API (Variety-wise Daily Market Prices / Agmarknet dataset), scoped to Maharashtra, onion prices.
-- Correct pagination implemented and verified — handles the API's `total`/`offset`/`limit` behavior properly, including a real bug found and fixed where the offset was updating one request too late.
-- Data saved in JSON Lines format, one record per line.
-- Verified against the source: record counts confirmed to match the API's reported totals for every date pulled, with a separate check confirming no unintended duplicate entries within a given day.
-
-**Schema Design**
-- Designed a normalized relational schema: `dim_location` (market/district/state), `dim_commodity` (commodity/code), and `fact_daily_price` (the actual price records, linked to both dimension tables via foreign keys).
-- Discovered and handled a real data nuance: the same market, commodity, and date can legitimately have multiple distinct price entries — so the fact table uses a surrogate primary key rather than forcing false uniqueness onto natural columns.
-
-**Data Loading**
-- Built Python logic to deduplicate and load dimension data (markets, commodities) into MySQL, using a "find or create" pattern to avoid duplicate rows.
-- Built the fact table loader, including explicit type casting to handle the source API's inconsistent price formatting (values arrive as either strings or numbers depending on the year) and explicit date parsing (source dates are day-first, not the database's expected format).
-- Full dataset loaded and verified: **475 records**, row-for-row matched between the source file and the live MySQL table.
+- Ingests commodity price data (state, district, market, commodity, variety, grade, price, date)
+- Cleans and type-casts genuinely inconsistent real-world data (prices arriving as both strings and numbers depending on source year, day-first date formats)
+- Loads it into a normalized star-schema MySQL database (`dim_location`, `dim_commodity`, `fact_daily_price`)
+- Orchestrates refresh via Apache Airflow
+- Answers real decision-support questions through an analytics layer:
+  - Price volatility per market (standard deviation, computed from scratch)
+  - Cross-market price comparison
+  - Price trend detection (rising/falling/stable)
+  - Price band (min/max/modal), month-over-month change, grade/variety breakdown, top movers across commodities
+- Exposes all of this through a FastAPI backend and an interactive Streamlit dashboard
 
 ---
 
-## Tech Stack
+## Architecture
 
-- **Python** — ingestion, data cleaning, type/date handling
-- **MySQL** — normalized relational storage
-- **data.gov.in API** — live government data source
-
----
-
-## Data Source
-
-- **Portal:** [data.gov.in](https://data.gov.in)
-- **Dataset:** Variety-wise Daily Market Prices Data of Commodity (Agmarknet)
-- **Current scope:** Maharashtra state, onion prices
-
----
-
-## Project Structure
+See [`docs/architecture.md`](docs/architecture.md) for the full layer-by-layer breakdown.
 
 ```
-bharat_data_pulse/
-├── main.py              # API ingestion logic (data.gov.in)
-├── data_organizing.py   # Dimension data deduplication (market, commodity lookups)
-├── load_to_mysql.py     # Dimension table loader (dim_location, dim_commodity)
-├── load_fact.py         # Fact table loader (with type/date casting)
-├── .env.example
-└── README.md
+data.gov.in / Kaggle historical mirror
+        │
+        ▼
+  Ingestion (ingestion/fetch.py)
+        │
+        ▼
+  Cleaning (ingestion/clean.py)
+        │
+        ▼
+  Storage — normalized MySQL schema (loaders/, sql/schema.sql)
+        │
+        ▼
+  Orchestration — Airflow DAG (airflow/dags/refresh_dag.py)
+        │
+        ▼
+  Analytics (analytics/queries.py)
+        │
+        ▼
+  Delivery — FastAPI (app/main.py) + Streamlit dashboard (dashboard/)
 ```
 
 ---
 
 ## Setup
 
+See [`docs/setup.md`](docs/setup.md) for full step-by-step instructions, including MySQL and Airflow setup.
+
+Quick start:
+
 ```bash
-# Clone the repo
-git clone https://github.com/Kiwi-520/bharat_data_pulse.git
-cd bharat_data_pulse
-
-# Install dependencies
 pip install -r requirements.txt
-
-# Set up environment variables
-cp .env.example .env
-# Fill in your data.gov.in API key and MySQL credentials
-
-# Run ingestion
-python main.py
-
-# Load into MySQL
-python load_to_mysql.py
-python load_fact.py
+cp .env.example .env   # fill in your real DB credentials
+mysql -u <user> -p <database> < sql/schema.sql
+python scripts/run_full_pipeline.py
+uvicorn app.main:app --reload
+streamlit run dashboard/streamlit_app.py
 ```
 
 ---
 
-## Why This Project
+## Tech stack
 
-Built as a hands-on Data Engineering project using real, live, public data rather than a pre-cleaned dataset. Every design decision here — schema structure, type handling, verification approach — is deliberate and documented; see [`ARCHITECTURE.md`](./ARCHITECTURE.md) for the full reasoning.
+Python · MySQL · Apache Airflow · FastAPI · Streamlit · pandas · Plotly
+
+---
+
+## Known limitations
+
+See [`docs/known_limitations.md`](docs/known_limitations.md) for the full list. The short version:
+
+- **Live ingestion from data.gov.in is implemented and tested, but currently unused** due to an extended outage of the source API. Historical data (through April 2026) is sourced from a Kaggle mirror of the same government dataset, with full attribution.
+- This is a **batch pipeline, by design** — the source data updates daily, so a streaming architecture would be a mismatch, not an improvement.
+- Dashboard defaults are anchored to the latest available data date, not "today," given the above.
+- Bulk inserts (`executemany()`) and indexes on `arrival_date`/`commodity_id` were added to handle full-scale (500K+ row) loads efficiently.
+
+---
+
+## Testing
+
+```bash
+pytest tests/
+```
+
+Unit tests cover core data-cleaning logic. Integration tests verify database operations (including that repeated pipeline runs don't create duplicate rows). See [`tests/`](tests/) for structure.
+
+---
+
+## Project status
+
+Actively developed. Core pipeline, orchestration, analytics, and dashboard are complete and tested. Planned next: a retrieval-based natural-language query layer.
 
 ---
 
 ## Author
 
-**Disha Holmukhe**
-[LinkedIn](https://www.linkedin.com/in/dishaholmukhe)
-
----
+**Disha Holmukhe** — Data Engineering | building toward a remote Data Engineering role.
