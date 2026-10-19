@@ -1,22 +1,30 @@
+
 [project]
 name = "bharat-data-pulse"
 version = "0.1.0"
-description = "Add your description here"
+description = "Agri-Market Intelligence and Mandi Analytics Suite"
 readme = "README.md"
+requires-python = ">=3.11"
 authors = [
     { name = "Disha Holmukhe", email = "dishaholmukhe521@gmail.com" }
 ]
-requires-python = ">=3.14"
 dependencies = [
     "fastapi[standard]>=0.141.1",
+    "pandas",
+    "requests",
+    "mysql-connector-python",
+    "python-dotenv",
 ]
 
 [project.scripts]
 bharat-data-pulse = "bharat_data_pulse:main"
 
 [build-system]
-requires = ["uv_build>=0.12.19,<0.13.0"]
-build-backend = "uv_build"
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["bharat_data_pulse"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
