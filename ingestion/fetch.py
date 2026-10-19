@@ -10,8 +10,34 @@ load_dotenv()
 
 API_KEY = os.getenv("API_KEY")
 API_URL = "https://api.data.gov.in/resource/35985678-0d79-46b4-9ed6-6f13308a1d24"
+
+import requests
+
+
+def check_api() -> bool:
+    """Return True only if the API returns valid JSON with records."""
+    try:
+        response = requests.get(
+            API_URL,
+            params={
+                "api-key": API_KEY,
+                "format": "json",
+                "limit": 1,
+            },
+            timeout=10,
+        )
+
+        if response.status_code != 200:
+            return False
+
+        data = response.json()
+        return isinstance(data, dict) and "records" in data
+
+    except Exception:
+        return False
+
 def get_data(
-    format: str = 'json',
+    format: str = "json",
     offset: int = 0,
     limit: int = 10,
     state: str | None = None,
@@ -20,11 +46,12 @@ def get_data(
     arrival_date: str | None = None,
 ):
     data_list = []
+
     myparams = {
-        "api-key":API_KEY,
-        "format":format,
-        "offset":offset,
-        "limit":limit
+        "api-key": API_KEY,
+        "format": format,
+        "offset": offset,
+        "limit": limit,
     }
 
     if state:
@@ -36,56 +63,92 @@ def get_data(
     if arrival_date:
         myparams["filters[Arrival_Date]"] = arrival_date
 
+    headers = {
+        "User-Agent": "curl/8.21.0",
+        "Accept": "*/*",
+    }
+
     try:
-        session = requests.Session()
-        session.trust_env = False
-        response = session.get(
-            API_URL,
-            params = myparams,
-            headers={
-                "User-Agent": "curl/8.21.0",
-                "Accept": "*/*"
-                },
-            timeout=120
-            )
-        # print(response.status_code)
-        # print(response.headers)
-        # print(response.text)
-        # print(response.url)
+        with requests.Session() as session:
+            session.trust_env = False
 
-        response.raise_for_status()
-        filename = str(date.today())+"data.json"
-        with open(filename, 'w') as f:
-            json.dump(response.json(), f, indent=4)
-
-        # pagination
-        total = response.json()['total']
-        number_of_pages = ceil(total/limit)
-        for page in range(0, number_of_pages):
-            myparams['offset'] = page * limit
-            response_per_page = session.get(
+            print("Fetching first page...")
+            response = session.get(
                 API_URL,
-                params = myparams,
-                headers={
-                    "User-Agent": "curl/8.21.0",
-                    "Accept": "*/*"
-                    },
-                timeout=30
+                params=myparams,
+                headers=headers,
+                timeout=20,
+            )
+            response.raise_for_status()
+
+            data = response.json()
+
+            if not isinstance(data, dict) or not isinstance(
+                data.get("records"), list
+            ):
+                raise ValueError("Invalid API response: missing records list")
+
+            total = int(data.get("total", len(data["records"])))
+            if arrival_date and total > 100000:
+                raise ValueError(
+                    f"Date filter may have failed: API reported {total} records "
+                    f"for arrival_date={arrival_date}. Aborting pagination."
                 )
-            # print(response_per_page.status_code)
-            # print(response_per_page.headers)
-            # print(response_per_page.text)
-            # print(response_per_page.url)
+            data_list.extend(data["records"])
 
-            response_per_page.raise_for_status()
-            records = response_per_page.json()['records']
-            for record in records:
-                data_list.append(record)
+            # Fetch remaining pages without requesting the first page again.
+            for page_offset in range(
+                offset + limit, offset + total, limit
+            ):
+                myparams["offset"] = page_offset
 
+                page_response = session.get(
+                    API_URL,
+                    params=myparams,
+                    headers=headers,
+                    timeout=30,
+                )
+                page_response.raise_for_status()
+
+                page_data = page_response.json()
+
+                if not isinstance(page_data, dict) or not isinstance(
+                    page_data.get("records"), list
+                ):
+                    raise ValueError(
+                        "Invalid API response during pagination"
+                    )
+
+                page_records = page_data["records"]
+
+                if not page_records:
+                    break
+
+                data_list.extend(page_records)
+                print(f"Fetched {len(data_list)}/{total} records")
+
+        # Save once after all pages have been fetched successfully.
+        os.makedirs("api_responses", exist_ok=True)
+
+        filename = (
+            f"api_responses/{arrival_date or date.today().isoformat()}"
+            f"_{offset}_{limit}.json"
+        )
+
+        with open(filename, "w", encoding="utf-8") as file:
+            json.dump(
+                {
+                    "total": total,
+                    "records_fetched": len(data_list),
+                    "records": data_list,
+                },
+                file,
+                indent=4,
+                default=str,
+            )
+
+        print(f"Saved API response to {filename}")
         return data_list
 
-    except requests.exceptions.RequestException as e:
-        raise Exception(f"Failed Fetch: {e}")
-
-# results = get_data(commodity="Tomato", state="Maharashtra", arrival_date="2026-04-04")
-# pprint(results)
+    except (requests.RequestException, ValueError, KeyError, TypeError) as exc:
+        raise RuntimeError(f"Failed to fetch mandi data: {exc}") from exc
