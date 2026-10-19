@@ -8,16 +8,15 @@ from ingestion.file_fetch import load_data_from_file
 from loaders.load_dimensions import load_dimensions
 from loaders.load_facts import load_facts
 
-DATA_FILE = "/home/disha/Projects/bharat_data_pulse/bharat_data_pulse/data1.jsonl"
+DATA_FILE = "/home/disha/Projects/bharat_data_pulse/bharat_data_pulse/jsonl_files/2025.jsonl"
 @dag(
-    dag_id="refresh_dag",
+    dag_id="backfill_dag",
     start_date=datetime(2026,9,1),
-    schedule="@daily",
+    schedule=None,
     catchup=False,
     tags=["refresh", "fallback"]
 )
 def refresh_pipeline():
-
     @task
     def get_records_task():
         records = load_data_from_file(DATA_FILE)
@@ -31,7 +30,6 @@ def refresh_pipeline():
             "market_map": market_map,
             "commodity_map": commodity_map,
         }
-
 
     @task
     def load_facts_task(records, maps):
