@@ -11,18 +11,21 @@ def fact_exists(cursor, location_id, commodity_id, min_price, max_price, modal_p
     )
     return cursor.fetchone()[0] > 0
 
-def load_facts(records, market_map, commodity_map):
+def load_facts(records, market_map, commodity_map, batch_size=5000):
     cnx = get_connection()
     if cnx is None:
         raise Exception("Could not connect to database")
     cursor = cnx.cursor()
 
-    add_fact_daily_price = (
-        "INSERT INTO fact_daily_price "
-        "(location_id, commodity_id, min_price, max_price, modal_price, grade, variety, arrival_date) "
-        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
+    # Step 1: pull existing fact identities into memory, once
+    cursor.execute(
+        "SELECT location_id, commodity_id, min_price, max_price, modal_price, "
+        "grade, variety, arrival_date FROM fact_daily_price"
     )
+    existing = set(cursor.fetchall())  # set of tuples, fast lookup
 
+    # Step 2: build the list of new rows to insert, skipping duplicates
+    new_rows = []
     for entry in records:
         location_id = market_map[entry["Market"]]["id"]
         commodity_id = commodity_map[entry["Commodity"]]["id"]
@@ -33,11 +36,25 @@ def load_facts(records, market_map, commodity_map):
         variety = entry["Variety"]
         arrival = date_conversion(entry["Arrival_Date"])
 
-        if fact_exists(cursor, location_id, commodity_id, min_p, max_p, modal_p, grade, variety, arrival):
-            continue  # skip, already inserted
+        row = (location_id, commodity_id, min_p, max_p, modal_p, grade, variety, arrival)
+        if row not in existing:
+            new_rows.append(row)
+            existing.add(row)
 
-        cursor.execute(add_fact_daily_price, (location_id, commodity_id, min_p, max_p, modal_p, grade, variety, arrival))
+    print(f"{len(records)} records checked, {len(new_rows)} new rows to insert")
 
-    cnx.commit()
+    # Step 3: insert in batches using executemany
+    add_fact_daily_price = (
+        "INSERT INTO fact_daily_price "
+        "(location_id, commodity_id, min_price, max_price, modal_price, grade, variety, arrival_date) "
+        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
+    )
+
+    for i in range(0, len(new_rows), batch_size):
+        batch = new_rows[i:i + batch_size]
+        cursor.executemany(add_fact_daily_price, batch)
+        cnx.commit()
+        print(f"Inserted batch {i // batch_size + 1} ({len(batch)} rows)")
+
     cursor.close()
     cnx.close()
