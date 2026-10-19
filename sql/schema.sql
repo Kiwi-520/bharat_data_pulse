@@ -24,3 +24,6 @@ CREATE TABLE fact_daily_price(
     variety VARCHAR(50),
     arrival_date DATE
 );
+
+CREATE INDEX idx_fact_arrival_date ON fact_daily_price(arrival_date);
+CREATE INDEX idx_fact_commodity_id ON fact_daily_price(commodity_id);
