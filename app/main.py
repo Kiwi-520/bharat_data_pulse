@@ -1,6 +1,13 @@
+import sys
+from pathlib import Path
+
+ROOT_DIR = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT_DIR))
+
 from fastapi import FastAPI, HTTPException
 from analytics.queries import get_price_trend, compare_markets, get_volatility
 from datetime import datetime
+
 
 app = FastAPI()
 
@@ -54,7 +61,7 @@ async def get_data_for_price_trend(commodity, market, start_date=None, end_date=
     if isinstance(end_date, str):
         end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
     try:
-        result = get_price_trend(commodity, market, start_date=None, end_date=None)
+        result = get_price_trend(commodity, market, start_date, end_date)
         if result is None or result ==[]:
             raise HTTPException(
                 status_code=404,
