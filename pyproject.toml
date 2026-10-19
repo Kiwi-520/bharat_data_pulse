@@ -29,3 +29,6 @@ py-modules = ["bharat_data_pulse"]
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
+
+[tool.poetry]
+package-mode = false
