@@ -4,7 +4,6 @@ from math import isclose
 from app.db import get_connection
 from pprint import pprint
 
-
 def get_volatility(commodity, market, start_date, end_date):
     if isinstance(start_date, str):
         start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
@@ -183,7 +182,7 @@ def get_price_band(commodity, market):
         raise Exception("Couldnot connect to database")
     cursor = cnx.cursor()
     cursor.execute( #this only causes database to return the records we need to fecth them speararlty to use.
-        "SELECT f.max_price, f.min_price, f.modal_price "
+        "SELECT f.arrival_date, f.max_price, f.min_price, f.modal_price "
         "FROM fact_daily_price f "
         "JOIN dim_commodity c ON f.commodity_id=c.commodity_id "
         "JOIN dim_location l ON f.location_id=l.location_id "
@@ -192,53 +191,83 @@ def get_price_band(commodity, market):
         (commodity, market)
     )
     rows = cursor.fetchone()
-    if rows is None:
-        return None
     cursor.close()
     cnx.close()
-    return rows
+    if rows is None:
+        return None
+    return {
+        "date": rows[0],
+        "max_price": float(rows[1]),
+        "min_price": float(rows[2]),
+        "modal_price": float(rows[3]),
+    }
 
 def get_month_over_month(commodity, market):
     cnx = get_connection()
     if cnx is None:
         raise Exception("Couldnot connect to database")
     cursor = cnx.cursor()
-    cursor.execute( #this only causes database to return the records we need to fecth them speararlty to use.
-        "SELECT YEAR(arrival_date) AS year, MONTH(arrival_date) AS month, AVG(f.modal_price) "
-        "FROM fact_daily_price f "
-        "JOIN dim_commodity c ON f.commodity_id=c.commodity_id "
-        "JOIN dim_location l ON f.location_id=l.location_id "
-        "WHERE c.commodity=%s AND l.market=%s "
-        "GROUP BY year, month "
-        "ORDER BY year DESC, month DESC "
-        "LIMIT 2",
-        (commodity, market)
+    cursor.execute(
+        """
+            SELECT
+                YEAR(f.arrival_date) AS year,
+                MONTH(f.arrival_date) AS month,
+                AVG(f.modal_price) AS avg_price
+            FROM fact_daily_price f
+            JOIN dim_commodity c
+                ON f.commodity_id = c.commodity_id
+            JOIN dim_location l
+                ON f.location_id = l.location_id
+            WHERE c.commodity = %s
+            AND l.market = %s
+            GROUP BY YEAR(f.arrival_date), MONTH(f.arrival_date)
+            ORDER BY year DESC, month DESC
+            LIMIT 2
+        """,
+    (commodity, market)
     )
     rows = cursor.fetchall()
+    cursor.close()
+    cnx.close()
     if len(rows) < 2:
-        return None
+        error= {
+            "change_pct": None
+        }
+        return error
 
     current_avg = float(rows[0][2])
     previous_avg = float(rows[1][2])
 
     if previous_avg == 0:
-        return None
+        error= {
+            "current_month_avg": current_avg,
+            "previous_month_avg": previous_avg,
+            "change_pct": None
+        }
+        return error
 
     change_pct = ((current_avg - previous_avg) / previous_avg) * 100
 
-    cursor.close()
-    cnx.close()
-
-    return {
-        "current_month_average": current_avg,
-        "previous_month_average": previous_avg,
+    result_dict = {
+        "current_month_avg": current_avg,
+        "previous_month_avg": previous_avg,
         "change_pct": round(change_pct, 2)
     }
 
+    return result_dict
+# mom = get_month_over_month("Onion", "Pimpalgaon Baswant(Saykheda) APMC")
+# print(mom)
 
 def get_top_movers(start_date, end_date, limit=5):
+    if isinstance(start_date, str):
+        start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
 
-    cursor = conn.cursor()
+    if isinstance(end_date, str):
+        end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+    cnx = get_connection()
+    if cnx is None:
+        raise Exception("Couldnot connect to database")
+    cursor = cnx.cursor()
 
     cursor.execute(
         """
@@ -259,6 +288,7 @@ def get_top_movers(start_date, end_date, limit=5):
     rows = cursor.fetchall()
 
     cursor.close()
+    cnx.close()
 
     # Store prices commodity-wise
     commodity_price_dict = {}
@@ -276,6 +306,7 @@ def get_top_movers(start_date, end_date, limit=5):
             "date": date,
             "price": price
         })
+
 
     # Find midpoint of the date range
     mid_date = start_date + (end_date - start_date) / 2
@@ -342,7 +373,6 @@ def get_top_movers(start_date, end_date, limit=5):
     }
 
 def get_grade_variety_breakdown(commodity, market):
-
     cnx = get_connection()
     if cnx is None:
         raise Exception("Couldnot connect to database")
@@ -362,7 +392,12 @@ def get_grade_variety_breakdown(commodity, market):
     rows = cursor.fetchall()
     cursor.close()
     cnx.close()
-    return rows
+    if rows is None:
+        return None
+    result_dict = []
+    for r in rows:
+        result_dict.append({"grade": r[0], "variety": r[1], "avg_price": float(r[2]), "count": r[3]})
+    return result_dict
 
 def get_market_coverage_count(commodity):
     cnx = get_connection()
@@ -379,10 +414,13 @@ def get_market_coverage_count(commodity):
         """,
         (commodity,)
     )
-    rows = cursor.fetchall()
+    rows = cursor.fetchone()[0]
     cursor.close()
     cnx.close()
     return rows
+
+# market_coverage = get_market_coverage_count("Onion")
+# print(market_coverage)
 
 def get_latest_data_date():
     cnx = get_connection()
@@ -398,31 +436,61 @@ def get_latest_data_date():
     rows = cursor.fetchall()
     cursor.close()
     cnx.close()
-    return rows[0]
+    return rows[0][0]
 
 # result = get_latest_data_date()
 # print(result)
 
 def get_price_history(commodity, market, start_date, end_date):
+
     cnx = get_connection()
+
     if cnx is None:
-        raise Exception("Couldnot connect to database")
+        raise Exception("Could not connect to database")
+
     cursor = cnx.cursor()
+
+    print("commodity:", commodity)
+    print("market:", market)
+    print("start_date:", start_date)
+    print("end_date:", end_date)
+
     cursor.execute(
         """
         SELECT f.arrival_date, f.modal_price
         FROM fact_daily_price f
-        JOIN dim_commodity c ON f.commodity_id=c.commodity_id
-        JOIN dim_location l ON f.location_id=l.location_id
-        WHERE c.commodity = %s AND l.market = %s AND f.arrival_date BETWEEN %s AND %s
+        JOIN dim_commodity c
+            ON f.commodity_id = c.commodity_id
+        JOIN dim_location l
+            ON f.location_id = l.location_id
+        WHERE c.commodity = %s
+          AND l.market = %s
+          AND f.arrival_date BETWEEN %s AND %s
         ORDER BY f.arrival_date
         """,
         (commodity, market, start_date, end_date)
     )
+
     rows = cursor.fetchall()
+
     cursor.close()
     cnx.close()
-    return rows
+
+    if not rows:
+        return []
+
+    result_list = []
+
+    for r in rows:
+        result_list.append({
+            "date": r[0],
+            "price": float(r[1])
+        })
+
+    return result_list
+
+# price_history = get_price_history("Onion", "Pune APMC", "2026-01-01", "2026-04-04")
+# print(price_history)
 
 def  get_commodity_list():
     cnx = get_connection()
@@ -444,7 +512,7 @@ def  get_commodity_list():
     cnx.close()
     return result
 
-def  get_market_list():
+def  get_market_list(commodity):
     cnx = get_connection()
     if cnx is None:
         raise Exception("Couldnot connect to database")
@@ -452,8 +520,14 @@ def  get_market_list():
     cursor.execute(
         """
         SELECT DISTINCT(market)
-        FROM dim_location
-        """
+        FROM fact_daily_price f
+        JOIN dim_commodity c
+            ON f.commodity_id = c.commodity_id
+        JOIN dim_location l
+            ON f.location_id = l.location_id
+        WHERE c.commodity = %s
+        """,
+        (commodity,)
     )
     rows = cursor.fetchall()
     result = []
@@ -463,3 +537,120 @@ def  get_market_list():
     cursor.close()
     cnx.close()
     return result
+
+# market_list = get_market_list("Onion")
+# print(market_list)
+
+"""Add these to analytics/queries.py"""
+from app.db import get_connection
+
+
+def get_market_summary():
+    """Per market: distinct commodity count + total record count."""
+    cnx = get_connection()
+    if cnx is None:
+        raise Exception("Could not connect to database")
+    cursor = cnx.cursor()
+    cursor.execute(
+        "SELECT l.market, l.district, l.state, "
+        "COUNT(DISTINCT f.commodity_id) AS commodity_count, "
+        "COUNT(*) AS record_count "
+        "FROM fact_daily_price f "
+        "JOIN dim_location l ON f.location_id = l.location_id "
+        "GROUP BY l.market, l.district, l.state "
+        "ORDER BY record_count DESC"
+    )
+    rows = cursor.fetchall()
+    cursor.close()
+    cnx.close()
+    return [{"market": r[0], "district": r[1], "state": r[2],
+             "commodity_count": r[3], "record_count": r[4]} for r in rows]
+
+
+def get_commodity_summary():
+    """Return one summary row per commodity using an efficient aggregate query."""
+    cnx = get_connection()
+
+    if cnx is None:
+        raise RuntimeError("Could not connect to database")
+
+    cursor = cnx.cursor()
+
+    try:
+        cursor.execute("""
+            WITH daily_summary AS (
+                SELECT
+                    commodity_id,
+                    MAX(arrival_date) AS latest_date,
+                    COUNT(DISTINCT location_id) AS market_count
+                FROM fact_daily_price
+                GROUP BY commodity_id
+            ),
+            latest_ids AS (
+                SELECT
+                    f.commodity_id,
+                    MAX(f.price_id) AS price_id
+                FROM fact_daily_price AS f
+                JOIN daily_summary AS s
+                    ON s.commodity_id = f.commodity_id
+                   AND s.latest_date = f.arrival_date
+                GROUP BY f.commodity_id
+            )
+            SELECT
+                c.commodity,
+                f.modal_price AS latest_price,
+                s.latest_date,
+                s.market_count
+            FROM daily_summary AS s
+            JOIN dim_commodity AS c
+                ON c.commodity_id = s.commodity_id
+            LEFT JOIN latest_ids AS li
+                ON li.commodity_id = s.commodity_id
+            LEFT JOIN fact_daily_price AS f
+                ON f.price_id = li.price_id
+            ORDER BY c.commodity
+        """)
+
+        rows = cursor.fetchall()
+
+    finally:
+        cursor.close()
+        cnx.close()
+
+    return [
+        {
+            "commodity": row[0],
+            "latest_modal_price": (
+                float(row[1]) if row[1] is not None else None
+            ),
+            "latest_date": row[2],
+            "market_count": row[3],
+        }
+        for row in rows
+    ]
+
+
+
+def get_state_commodity_distribution(commodities):
+    """Record count per state, for one or more commodities (map sizing)."""
+    if not commodities:
+        return []
+    cnx = get_connection()
+    if cnx is None:
+        raise Exception("Could not connect to database")
+    cursor = cnx.cursor()
+    placeholders = ",".join(["%s"] * len(commodities))
+    cursor.execute(
+        f"SELECT l.state, COUNT(*) AS record_count, "
+        f"COUNT(DISTINCT l.market) AS market_count "
+        f"FROM fact_daily_price f "
+        f"JOIN dim_commodity c ON f.commodity_id = c.commodity_id "
+        f"JOIN dim_location l ON f.location_id = l.location_id "
+        f"WHERE c.commodity IN ({placeholders}) "
+        f"GROUP BY l.state",
+        tuple(commodities)
+    )
+    rows = cursor.fetchall()
+    cursor.close()
+    cnx.close()
+    return [{"state": r[0], "record_count": r[1], "market_count": r[2]} for r in rows]
