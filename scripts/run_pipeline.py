@@ -2,7 +2,7 @@ import sys
 from datetime import date, timedelta
 from pathlib import Path
 
-PROJECT_ROOT = Path("/home/disha/Projects/bharat_data_pulse/bharat_data_pulse")
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from ingestion.fetch import check_api, get_data
