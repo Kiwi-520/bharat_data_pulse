@@ -7,7 +7,8 @@ from analytics.queries import (
     compare_markets,
     get_market_summary,
     get_commodity_summary,
-    get_price_history
+    get_price_history,
+    get_latest_data_date,
 )
 from datetime import date
 
@@ -21,7 +22,8 @@ st.title("Bharat Data Pulse - Price History Analytics")
 
 # Fetch dropdown options
 data_commodity = get_commodity_summary()
-commodities_list = [x["commodity"] for x in data_commodity]
+commodities_list = [x["commodity"] for x in data_commodity
+latest = get_latest_data_date()
 
 data_markets = get_market_summary()
 markets_list = [x["market"] for x in data_markets]
@@ -61,7 +63,7 @@ with left_panel:
     with end_col:
         end_date = st.date_input(
             "End date",
-            value=date.today(),
+            value=latest,
             key="history_end_date"
         )
 
