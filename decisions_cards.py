@@ -10,6 +10,7 @@ from analytics.queries import (
     get_market_summary,
     get_commodity_summary,
     get_latest_data_date,
+    get_min_data_date,
 )
 
 
@@ -48,6 +49,7 @@ commodities_list = sorted({
     if item.get("commodity")
 })
 latest = get_latest_data_date()
+min_date = get_min_data_date()
 
 if not markets_list or not commodities_list:
     st.warning(
@@ -81,7 +83,7 @@ with filter_col2:
 with filter_col3:
     start_date = st.date_input(
         "Start Date",
-        value=date(2025, 1, 1),
+        value=min_date,
         key="decision_start_date",
     )
 
