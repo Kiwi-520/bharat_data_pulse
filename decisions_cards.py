@@ -122,6 +122,45 @@ def display_month_value(value):
         st.write(value)
 
 
+def display_card_result(value):
+    """Render dictionary results as clean Streamlit metrics."""
+
+    if value is None or value == {} or value == []:
+        st.info("No data available for the selected filters.")
+        return
+
+    if isinstance(value, dict):
+        items = [
+            (str(key).replace("_", " ").title(), val)
+            for key, val in value.items()
+            if val is not None
+        ]
+
+        if not items:
+            st.info("No data available for the selected filters.")
+            return
+
+        for start in range(0, len(items), 2):
+            metric_cols = st.columns(
+                min(2, len(items) - start)
+            )
+
+            for col, (label, val) in zip(
+                metric_cols, items[start:start + 2]
+            ):
+                with col:
+                    if isinstance(val, (int, float)) and not isinstance(val, bool):
+                        st.metric(label=label, value=f"{val:,.2f}")
+                    elif isinstance(val, (dict, list, tuple)):
+                        st.caption(label)
+                        st.write(val)
+                    else:
+                        st.caption(label)
+                        st.markdown(f"**{val}**")
+
+    else:
+        st.write(value)
+
 # ==================================================
 # VALIDATE DATES AND LOAD DECISIONS
 # ==================================================
@@ -172,12 +211,12 @@ else:
     with col1:
         with st.container(border=True):
             st.subheader("Price Trend")
-            display_result(trend)
+            display_card_result(trend)
 
     with col2:
         with st.container(border=True):
             st.subheader("Price Band")
-            display_result(band)
+            display_card_result(band)
 
     with col3:
         with st.container(border=True):
