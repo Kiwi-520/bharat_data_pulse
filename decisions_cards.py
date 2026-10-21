@@ -65,19 +65,19 @@ if not markets_list or not commodities_list:
 filter_col1, filter_col2, filter_col3, filter_col4 = st.columns(4)
 
 with filter_col1:
-    selected_market = st.selectbox(
-        "Select Market",
-        options=markets_list,
-        index=0,
-        key="decision_market",
-    )
-
-with filter_col2:
     selected_commodity = st.selectbox(
         "Select Commodity",
         options=commodities_list,
         index=0,
         key="decision_commodity",
+    )
+
+with filter_col2:
+    markets_list = get_market_list(selected_commodity)
+    choice_market = st.selectbox(
+        "Pick a market",
+        markets_list,
+        key="history_market"
     )
 
 with filter_col3:
