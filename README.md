@@ -1,6 +1,7 @@
 # 🌾 Bharat Data Pulse
 
 **Live demo:** [Demo link](https://bharatdatapulse-dishaholmukhe.streamlit.app/)
+
 **Pipeline status:** ![Pipeline](https://github.com/Kiwi-520/bharat-data-pulse/actions/workflows/daily_pipeline.yml/badge.svg)
 
 An end-to-end data engineering pipeline that turns India's open government 
@@ -32,8 +33,14 @@ orchestration, and an interactive dashboard.
 
 ## Screenshots
 
-[embed your 3 screenshots here]
+**home page:**
 <img width="1885" height="823" alt="image" src="https://github.com/user-attachments/assets/9c555ca7-91dd-4502-9819-84cb83ad5fc7" />
+
+**price analytics page:**
+<img width="1910" height="797" alt="image" src="https://github.com/user-attachments/assets/6ee68a62-90a5-4fb0-a126-b0bec0d2e222" />
+
+**desicions page:**
+<img width="1887" height="807" alt="image" src="https://github.com/user-attachments/assets/390cbed0-6d92-404b-a26c-d982d9a934d1" />
 
 ---
 
