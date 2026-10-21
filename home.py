@@ -7,6 +7,7 @@ from analytics.queries import (
     get_grade_variety_breakdown,
     get_top_movers,
     get_latest_data_date,
+    get_min_data_date,
     get_market_summary,
     get_commodity_summary,
 )
@@ -46,6 +47,7 @@ def render_home():
     # Last Updated
     # ----------------------------------------------
     latest = get_latest_data_date()
+    min_date = get_min_data_date()
     st.info(f"📅 Data current as of **{latest}**. Live refresh resumes when the source API (data.gov.in) is restored.")
 
     # ----------------------------------------------
@@ -74,7 +76,7 @@ def render_home():
     with c3:
         start_date = st.date_input(
             "Start Date",
-            value=date(2024, 1, 1),
+            value=min_date,
             key="home_start_date",
         )
 
