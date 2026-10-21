@@ -49,6 +49,7 @@ with left_panel:
         )
 
     with market_col:
+        markets_list = get_market_list(choice_commodity)
         choice_market = st.selectbox(
             "Pick a market",
             markets_list,
