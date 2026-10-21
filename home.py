@@ -45,14 +45,8 @@ def render_home():
     # ----------------------------------------------
     # Last Updated
     # ----------------------------------------------
-    col1, col2, col3, col4, col5, col6, col7 = st.columns(7)
-
-    last_date = get_latest_data_date()
-
-    with col7:
-        with st.container(border=True):
-            st.write("Last Updated")
-            st.write(last_date if last_date else "N/A")
+    latest = get_latest_data_date()
+    st.info(f"📅 Data current as of **{latest}**. Live refresh resumes when the source API (data.gov.in) is restored.")
 
     # ----------------------------------------------
     # Filters
