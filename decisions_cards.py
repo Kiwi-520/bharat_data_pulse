@@ -11,6 +11,7 @@ from analytics.queries import (
     get_commodity_summary,
     get_latest_data_date,
     get_min_data_date,
+    get_market_list,
 )
 
 
