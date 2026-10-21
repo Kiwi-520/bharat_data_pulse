@@ -654,3 +654,19 @@ def get_state_commodity_distribution(commodities):
     cursor.close()
     cnx.close()
     return [{"state": r[0], "record_count": r[1], "market_count": r[2]} for r in rows]
+
+def get_min_data_date():
+    cnx = get_connection()
+    if cnx is None:
+        raise Exception("Couldnot connect to database")
+    cursor = cnx.cursor()
+    cursor.execute(
+        """
+        SELECT MIN(arrival_date)
+        FROM fact_daily_price
+        """
+    )
+    rows = cursor.fetchall()
+    cursor.close()
+    cnx.close()
+    return rows[0][0]
