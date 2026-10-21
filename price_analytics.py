@@ -139,10 +139,13 @@ with right_panel:
         )
 
     # Select specific markets
+    # Show only markets that have data for the selected commodity
+    comparison_markets = get_market_list(choice_commodity_bar)
+    
     selected_markets = st.multiselect(
         "Select markets to compare",
-        options=markets_list,
-        default=markets_list[:3],
+        options=comparison_markets,
+        default=comparison_markets[:3],
         key="comparison_markets"
     )
 
