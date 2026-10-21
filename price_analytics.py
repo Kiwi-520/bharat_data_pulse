@@ -10,6 +10,7 @@ from analytics.queries import (
     get_price_history,
     get_latest_data_date,
     get_min_data_date,
+    get_market_list,
 )
 from datetime import date
 
