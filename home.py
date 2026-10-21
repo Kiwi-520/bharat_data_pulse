@@ -81,7 +81,7 @@ def render_home():
     with c4:
         end_date = st.date_input(
             "End Date",
-            value=date(2026, 4, 4),
+            value=latest,
             key="home_end_date",
         )
 
