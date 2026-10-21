@@ -10,6 +10,7 @@ from analytics.queries import (
     get_min_data_date,
     get_market_summary,
     get_commodity_summary,
+    get_market_list,
 )
 
 
@@ -56,21 +57,20 @@ def render_home():
     c1, c2, c3, c4 = st.columns(4)
 
     with c1:
-        selected_market = st.selectbox(
-            "Select Market",
-            markets_list,
-            index=0 if markets_list else None,
-            placeholder="Select a market",
-            key="home_market",
-        )
-
-    with c2:
-        selected_commodity = st.selectbox(
+         selected_commodity = st.selectbox(
             "Select Commodity",
             commodities_list,
             index=0 if commodities_list else None,
             placeholder="Select a commodity",
             key="home_commodity",
+        )
+
+    with c2:
+        markets_list = get_market_list(selected_commodity)
+        selected_market = st.selectbox(
+            "Pick a market",
+            markets_list,
+            key="history_market"
         )
 
     with c3:
