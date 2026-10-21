@@ -25,6 +25,7 @@ st.title("Bharat Data Pulse - Price History Analytics")
 data_commodity = get_commodity_summary()
 commodities_list = [x["commodity"] for x in data_commodity]
 latest = get_latest_data_date()
+min_date = get_min_data_date()
 
 data_markets = get_market_summary()
 markets_list = [x["market"] for x in data_markets]
@@ -124,14 +125,14 @@ with right_panel:
     with bar_start_col:
         start_date_bar = st.date_input(
             "Start date",
-            value=date(2024, 1, 1),
+            value=min_date,
             key="comparison_start_date"
         )
 
     with bar_end_col:
         end_date_bar = st.date_input(
             "End date",
-            value=date.today(),
+            value=latest,
             key="comparison_end_date"
         )
 
