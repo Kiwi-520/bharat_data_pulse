@@ -14,6 +14,7 @@ dependencies = [
     "requests",
     "mysql-connector-python",
     "python-dotenv",
+    "plotly>=6.0.0",
 ]
 
 [project.scripts]
