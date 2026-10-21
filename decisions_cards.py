@@ -75,7 +75,7 @@ with filter_col1:
 
 with filter_col2:
     markets_list = get_market_list(selected_commodity)
-    choice_market = st.selectbox(
+    selected_market = st.selectbox(
         "Pick a market",
         markets_list,
         key="history_market"
