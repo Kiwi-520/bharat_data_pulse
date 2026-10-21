@@ -150,7 +150,8 @@ def display_card_result(value):
             ):
                 with col:
                     if isinstance(val, (int, float)) and not isinstance(val, bool):
-                        st.metric(label=label, value=f"{val:,.2f}")
+                        st.caption(label)
+                        st.write(f"{val:,.2f}")
                     elif isinstance(val, (dict, list, tuple)):
                         st.caption(label)
                         st.write(val)
