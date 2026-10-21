@@ -9,6 +9,7 @@ from analytics.queries import (
     get_month_over_month,
     get_market_summary,
     get_commodity_summary,
+    get_latest_data_date,
 )
 
 
@@ -46,7 +47,7 @@ commodities_list = sorted({
     for item in commodities_data
     if item.get("commodity")
 })
-
+latest = get_latest_data_date()
 
 if not markets_list or not commodities_list:
     st.warning(
@@ -87,7 +88,7 @@ with filter_col3:
 with filter_col4:
     end_date = st.date_input(
         "End Date",
-        value=date.today(),
+        value=latest,
         key="decision_end_date",
     )
 
